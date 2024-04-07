@@ -14,11 +14,6 @@ WHERE id = $1 LIMIT 1;
 -- name: GetAccountForUpdate :one
 SELECT * FROM accounts
 WHERE id = $1 LIMIT 1
-FOR UPDATE;
-
--- name: GetAccountForUpdate :one
-SELECT * FROM accounts
-WHERE id = $1 LIMIT 1
 FOR NO KEY UPDATE;
 
 -- name: ListAccounts :many
@@ -33,6 +28,8 @@ UPDATE accounts
 SET balance = $2
 WHERE id = $1
 RETURNING *;
+
+-- sqlc.arg is used to pass names arguments because passing balance when we are adding does't make sense. Hence we use arg named amount
 
 -- name: AddAccountBalance :one
 UPDATE accounts
