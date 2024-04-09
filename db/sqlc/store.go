@@ -100,8 +100,14 @@ func (store *Store) TransferTx(ctx context.Context, arg TransferTxParams) (Trans
 		// Aquire lock and complete 1 transaction and then release to continue with other transactions and avoid deadlocks
 		if arg.FromAccountID < arg.ToAccountID {
 			result.FromAccount, result.ToAccount, err = addMoney(ctx, q, arg.FromAccountID, arg.ToAccountID, -arg.Amount, arg.Amount)
+			if err != nil {
+				return err
+			}
 		} else {
 			result.ToAccount, result.FromAccount, err = addMoney(ctx, q, arg.ToAccountID, arg.FromAccountID, arg.Amount, -arg.Amount)
+			if err != nil {
+				return err
+			}
 		}
 
 		return nil
