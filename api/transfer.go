@@ -2,11 +2,13 @@ package api
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	db "github.com/harshitsnghl/simplebank/db/sqlc"
+	"github.com/harshitsnghl/simplebank/token"
 )
 
 // binding is used to validate req body which comes with gin framework
@@ -25,11 +27,29 @@ func (server *Server) createTransfer(ctx *gin.Context) {
 		return
 	}
 
-	if !server.validAccount(ctx, req.FromAccountID, req.Currency) {
+	fromAccount, valid := server.validAccount(ctx, req.FromAccountID, req.Currency)
+
+	if !valid {
 		return
 	}
 
-	if !server.validAccount(ctx, req.ToAccountID, req.Currency) {
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	if authPayload.Username != fromAccount.Owner {
+		err := errors.New("authenticated account doesn't belong to the from account owner")
+		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
+		return
+	}
+
+	fromAccount, valid = server.validAccount(ctx, req.ToAccountID, req.Currency)
+	if !valid {
+		return
+	}
+
+	if _, ok := server.validAccount(ctx, req.FromAccountID, req.Currency); !ok {
+		return
+	}
+
+	if _, ok := server.validAccount(ctx, req.ToAccountID, req.Currency); !ok {
 		return
 	}
 
@@ -49,23 +69,23 @@ func (server *Server) createTransfer(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, result)
 }
 
-func (server *Server) validAccount(ctx *gin.Context, accountID int64, currency string) bool {
+func (server *Server) validAccount(ctx *gin.Context, accountID int64, currency string) (db.Account, bool) {
 	account, err := server.store.GetAccount(ctx, accountID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			ctx.JSON(http.StatusNotFound, errorResponse(err))
-			return false
+			return account, false
 		}
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-		return false
+		return account, false
 	}
 
 	if account.Currency != currency {
 		err := fmt.Errorf("account [%d] currency mismatch: %s vs %s", account.ID, account.Currency, currency)
 		ctx.JSON(http.StatusNotFound, errorResponse(err))
-		return false
+		return account, false
 	}
 
-	return true
+	return account, true
 
 }
