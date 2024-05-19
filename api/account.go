@@ -14,7 +14,6 @@ import (
 
 // binding is used to validate req body which comes with gin framework
 type createAccountRequest struct {
-	Owner    string `json:"owner" binding:"required"`
 	Currency string `json:"currency" binding:"required,currency"`
 }
 
