@@ -40,16 +40,8 @@ func (server *Server) createTransfer(ctx *gin.Context) {
 		return
 	}
 
-	fromAccount, valid = server.validAccount(ctx, req.ToAccountID, req.Currency)
+	_, valid = server.validAccount(ctx, req.ToAccountID, req.Currency)
 	if !valid {
-		return
-	}
-
-	if _, ok := server.validAccount(ctx, req.FromAccountID, req.Currency); !ok {
-		return
-	}
-
-	if _, ok := server.validAccount(ctx, req.ToAccountID, req.Currency); !ok {
 		return
 	}
 
